@@ -1,7 +1,16 @@
-const fs = require('fs');
-const crypto = require('crypto');
-const path = require('path');
-const axios = require('axios');
+import fs from 'fs';
+import crypto from 'crypto';
+import path from 'path';
+import axios from 'axios';
+
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// const fs = require('fs');
+// const crypto = require('crypto');
+// const path = require('path');
+// const axios = require('axios');
 
 /**
  * @description 检查路径是否存在，如果不存在，则创建它。
@@ -78,7 +87,6 @@ function getTSList(m3u8Content, tsUrldemo) {
         const pathSegments = filePath.split('/');
         const path = pathSegments.slice(0, -1).join('/');
         const fileName = pathSegments.slice(-1)[0];
-
         // 获取参数部分
         const queryParams = parseUri(urlObj.search).params;
 
@@ -257,12 +265,7 @@ function decode(secret_key, IV, rawfilepath, savefilepath) {
 
 }
 
-async function main() {
-
-    let fileDir = "testDir"
-    let userid = `u_***`
-    let m3u8Url = "https://pri-cdn-tx.xiaoeknow.com/.../***.m3u8?sign=***&t=***"
-    let tsUrldemo = "https://btt-vod.xiaoeknow.com/.../***.ts?start=*&end=***&type=***&sign=***&t=***&us=***"
+async function main(fileDir, m3u8Url, tsUrldemo) {
 
     // init
     let downloadFilePath = path.join(__dirname, fileDir, 'download')
@@ -284,8 +287,11 @@ async function main() {
     // 获取所有ts文件url
     const tsUrls = getTSList(m3u8, tsUrldemo)
 
-    // 获取解密的密钥
-    let decryptedKey = xorKeys(key, userid);
+    // 获取解密的密钥 
+    let decryptedKey = key;
+    if (needXor) {
+        decryptedKey = xorKeys(key, userid);
+    }
     console.log('解密后的密钥:', decryptedKey);
 
     for (let i = 0; i < tsUrls.length; i++) {
@@ -318,7 +324,13 @@ async function main() {
         fs.appendFileSync(path.join(decodeFilePath, "filelist.txt"), str, "utf-8")
     }
 
-    console.log('finish')
+    console.log('finish download')
 }
 
-main()
+import { userid, needXor, m3u8Urls, tsUrldemos } from './info.js';
+
+
+for (let i = 0; i < m3u8Urls.length; i++) {
+    console.log(`开始解密第${i + 1}个视频`)
+    await main(`video${i}`, m3u8Urls[i], tsUrldemos[i])
+}
